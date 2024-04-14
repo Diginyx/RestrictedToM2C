@@ -56,7 +56,7 @@ class Landmark(Entity):
         super(Landmark, self).__init__()
 
 # properties of agent entities
-class Agent(Entity):
+class  Agent(Entity):
     def __init__(self):
         super(Agent, self).__init__()
         # agents are movable by default

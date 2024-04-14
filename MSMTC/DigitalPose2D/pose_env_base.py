@@ -723,6 +723,14 @@ class Pose_Env_Base:
                     else:
                         target_info += [0, 0, 0, 0]
             assert len(target_info) == feature_dim
+            i = 0
+            for target in target_info:
+                try:
+                    target_info[i] = target[0]
+                except:
+                    pass
+                i += 1
+            print(target_info)
             state[cam_i] = target_info
         if self.reset_type!=3:
             state = state.reshape((camera_num, target_num, state_dim))

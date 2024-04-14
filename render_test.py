@@ -50,7 +50,8 @@ def render_test(args):
 
     player = Agent(None, env, args, None, device)
     player.gpu_id = gpu_id
-    player.model = build_model(player.env, args, device).to(device)
+
+    player.model = build_model(player.env, env, args, device).to(device)
     player.model.eval()
     
     saved_state = torch.load(args.load_model_dir)

@@ -17,6 +17,7 @@ class MultiAgentEnv(gym.Env):
 
         self.world = world
         self.agents = self.world.policy_agents
+        self.landmarks = world.landmarks
         self.preys = self.world.policy_preys
         # set required vectorized gym env property
         self.n_agents = len(world.policy_agents)
@@ -270,16 +271,22 @@ class MultiAgentEnv(gym.Env):
             from multiagent import rendering
             self.render_geoms = []
             self.render_geoms_xform = []
+            i = 0
             for entity in self.world.entities:
-                geom = rendering.make_circle(entity.size)
+                #DRAWING CIRCLE
+                if "obstacle" in entity.name:
+                    geom = rendering.make_rectangle()
+                else:
+                    geom = rendering.make_circle(entity.size)
                 xform = rendering.Transform()
                 if 'agent' in entity.name:
                     geom.set_color(*entity.color, alpha=0.5)
-                else:
+                elif 'landmark' or 'obstacle' in entity.name:
                     geom.set_color(*entity.color)
                 geom.add_attr(xform)
                 self.render_geoms.append(geom)
                 self.render_geoms_xform.append(xform)
+                i += 1
 
             # add geoms to viewer
             for viewer in self.viewers:
