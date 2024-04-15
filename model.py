@@ -1001,11 +1001,11 @@ class ToM2C_single(torch.nn.Module):
         # print("available_actions:", available_actions, available_actions.shape)
         #For WITH color restrictions use this
         #############################################################################################################################################################
-        #actions, entropies, log_probs, probs = self.actor(actor_feature, test, available_actions)
+        actions, entropies, log_probs, probs = self.actor(actor_feature, test, available_actions)
         #############################################################################################################################################################
         #For WITHOUT color restrictions use this
         #############################################################################################################################################################
-        actions, entropies, log_probs, probs = self.actor(actor_feature, test, available_actions=None)
+        # actions, entropies, log_probs, probs = self.actor(actor_feature, test, available_actions=None)
         #############################################################################################################################################################
       
         if train_comm:
