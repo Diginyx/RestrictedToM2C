@@ -978,7 +978,7 @@ class ToM2C_single(torch.nn.Module):
         #################################################################################################################################################################
         #WITH COLOR RESTRICTIONS
         ##################################################################################################################################################################
-        print(self.landmarks[0].color)
+        # print(self.landmarks[0].color)
         available_actions = []
         for agent in self.agents:
             equality = []
@@ -996,6 +996,7 @@ class ToM2C_single(torch.nn.Module):
         available_actions = np.array(available_actions)
         if len(available_actions) == 0:
             available_actions = None
+        # print(available_actions)
         #############################################################################################################################################################
         # available_actions = torch.tensor([[[True], [False], [True], [False], [True], [False]], [[True], [False], [True], [False], [True], [False]], [[False], [False], [False], [False], [True], [False]]])
         # print("available_actions:", available_actions, available_actions.shape)
