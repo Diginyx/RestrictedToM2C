@@ -1,8 +1,9 @@
 gym == 0.10.5
 numpy
-torch == 1.7.1
+torch
 tensorboard
 torchvision
 opencv-python
 setproctitle
 pyglet==1.5.27
+tensorboardX

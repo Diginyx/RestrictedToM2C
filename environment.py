@@ -14,12 +14,12 @@ def create_env(env_id, args, rank=-1):
         import multiagent.scenarios as scenarios
         scenario_name = args.env
         # load scenario from script
-        print(scenario_name)
+        # print(scenario_name)
         scenario = scenarios.load(scenario_name + ".py").Scenario()
         # create world
         world = scenario.make_world(args.num_agents, args.num_targets)
         # create multiagent environment
-        print("HELLO WORLD!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        # print("HELLO WORLD!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         env = MultiAgentEnv(world, scenario.reset_world, scenario.reward, scenario.observation)
         env_wrap = env_wrapper(env, args)
         return env_wrap
