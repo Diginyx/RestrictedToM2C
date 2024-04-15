@@ -996,8 +996,8 @@ class ToM2C_single(torch.nn.Module):
         available_actions = np.array(available_actions)
         if len(available_actions) == 0:
             available_actions = None
-        # print(available_actions)
         #############################################################################################################################################################
+        # print(available_actions)
         # available_actions = torch.tensor([[[True], [False], [True], [False], [True], [False]], [[True], [False], [True], [False], [True], [False]], [[False], [False], [False], [False], [True], [False]]])
         # print("available_actions:", available_actions, available_actions.shape)
         #For WITH color restrictions use this
