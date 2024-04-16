@@ -146,22 +146,42 @@ class Agent(object):
 
             '''
             # compute ToM prediction accuracy
-            ToM_goal = (ToM_goals[:,:,:,-1]>=0.1).unsqueeze(-1) # n * n-1 * m * 1
-            random_ToM_goal = torch.randint(2,(self.num_agents,self.num_agents-1,self.num_targets,1))
+            ToM_goal = (ToM_goals[:, :, -1] >= 0.1).unsqueeze(-1)  # n * n-1 * m * 1
+            random_ToM_goal = torch.randint(2, (self.num_agents, self.num_agents - 1, self.num_targets, 1))
             real_goal = torch.from_numpy(actions)
-            real_goal = real_goal.unsqueeze(0).repeat(self.num_agents,1,1,1)
-            idx= (torch.ones(self.num_agents, self.num_agents) - torch.diag(torch.ones(self.num_agents))).bool()
-            real_goal = real_goal[idx].reshape(self.num_agents, self.num_agents-1, self.num_targets, -1)
+            real_goal = real_goal.unsqueeze(0).repeat(self.num_agents, 1, 1, 1)
+            idx = (torch.ones(self.num_agents, self.num_agents) - torch.diag(torch.ones(self.num_agents))).bool()
+            real_goal = real_goal[idx].reshape(self.num_agents, self.num_agents - 1, self.num_targets, -1)
             ToM_cover = (ToM_target_cover >= 0.1)
-            random_ToM_cover = torch.randint(2,(self.num_agents,self.num_agents-1,self.num_targets,1))
-            self.ToM_acc = (ToM_goal==real_goal)[real_cover].float()
+            random_ToM_cover = torch.randint(2, (self.num_agents, self.num_agents - 1, self.num_targets, 1))
+            self.ToM_acc = (ToM_goal == real_goal)[real_cover].float()
             self.ToM_acc = torch.mean(self.ToM_acc)
-            self.ToM_target_acc = torch.mean((real_cover==ToM_cover)[real_cover].float())
-            self.random_ToM_acc = torch.mean((random_ToM_goal==real_goal)[real_cover].float())
-            self.random_ToM_target_acc = torch.mean((real_cover==random_ToM_cover)[real_cover].float())
-            #print(torch.mean(ToM_goal.float()))
+            self.ToM_target_acc = torch.mean((real_cover == ToM_cover)[real_cover].float())
+            self.random_ToM_acc = torch.mean((random_ToM_goal == real_goal)[real_cover].float())
+            self.random_ToM_target_acc = torch.mean((real_cover == random_ToM_cover)[real_cover].float())
+            # print(torch.mean(ToM_goal.float()))
             '''
-        state_multi, self.reward, self.done, self.info = self.env.step(actions)#, obstacle=True)
+
+            # compute ToM prediction accuracy
+            ToM_goal = torch.flatten(torch.max(ToM_goals, dim=2)[1])  # n * n-1 * m * 1
+            random_ToM_goal = torch.randint(2, (self.num_agents, self.num_agents - 1, self.num_targets, 1))
+            real_goal = torch.from_numpy(actions)
+            real_goal = real_goal.unsqueeze(0).repeat(self.num_agents, 1, 1, 1)
+            idx = (torch.ones(self.num_agents, self.num_agents) - torch.diag(torch.ones(self.num_agents))).bool()
+            real_goal = real_goal.reshape(self.num_agents, self.num_targets)
+            real_goal = real_goal[idx]
+            ToM_cover = (ToM_target_cover >= 0.1)
+            random_ToM_cover = torch.randint(2, (self.num_agents, self.num_agents - 1, self.num_targets, 1))
+            self.ToM_acc = (ToM_goal == real_goal).float()
+            self.ToM_acc = torch.mean(self.ToM_acc)
+            self.ToM_target_acc = torch.mean((real_cover == ToM_cover)[real_cover].float())
+            # self.random_ToM_acc = torch.mean((torch.flatten(random_ToM_goal)==real_goal)[real_cover].float())
+            self.random_ToM_target_acc = torch.mean((real_cover == random_ToM_cover)[real_cover].float())
+            # print(torch.mean(ToM_goal.float()))
+
+        state_multi, self.reward, self.done, self.info = self.env.step(actions)  # , obstacle=True)
+        print("Reward:", self.reward)
+        print("ToM_acc:", self.ToM_acc)
         if isinstance(self.done, list): self.done = np.sum(self.done)
         self.state = torch.from_numpy(np.array(state_multi)).float().to(self.device)
         self.eps_len += 1
