@@ -70,9 +70,12 @@ class env_wrapper:
                 act_low_n.append(self.rule_policy(obs_low))
             
             obs_n, rew, done_n, info_n = self.env.step(act_low_n)
-            if self.render:
-                self.env.render()
-                time.sleep(0.1)
+
+            # if self.render:
+            #     #RENDERING HERE
+            #     self.env.render()
+            #     time.sleep(0.1)
+
             rew_ave += rew[0]
         rew_all = np.array([rew_ave/keep])
         return obs_n, rew_all, done_n, info_n

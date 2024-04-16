@@ -55,12 +55,21 @@ def render_test(args):
     
     saved_state = torch.load(args.load_model_dir)
     player.model.load_state_dict(saved_state['model'],strict=False)
-
+    rewards = []
+    TOMAccuracies = []
     for i_episode in range(args.test_eps):
         player.reset()
         print(f"Episode:{i_episode}")
         for i_step in range(args.env_steps):
-            player.action_test()
+            reward, TOMAccuracy = player.action_test()
+            rewards.append(reward)
+            TOMAccuracies.append(TOMAccuracy)
+
+    rewards = np.array(rewards)
+    TOMAccuracies = np.array(TOMAccuracies)
+    print(np.mean(rewards))
+    print(np.mean(TOMAccuracies))
+
 
 if __name__ == '__main__':
     args = parser.parse_args()
