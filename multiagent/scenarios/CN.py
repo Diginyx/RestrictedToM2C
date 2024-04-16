@@ -11,8 +11,7 @@ class Scenario(BaseScenario):
         world.dim_c = 0
         if num_agents == -1:
             num_agents = 3
-            #ADDING OBSTACLES
-            num_landmarks = 3 #* 2
+            num_landmarks = 3
         else:
             if num_targets == -1:
                 raise AssertionError("Number of targets is not assigned")
@@ -32,16 +31,9 @@ class Scenario(BaseScenario):
         # add landmarks
         world.landmarks = [Landmark() for i in range(num_landmarks)]
         for i, landmark in enumerate(world.landmarks):
-            # if i % 2 != 0:
-            #     landmark.name = "obstacle %d" % i
-            #     landmark.collide = True
-            #     landmark.size = 0.05
-            # else:
             landmark.name = 'landmark %d' % i
             landmark.collide = False
-            landmark.size = 0.05
             landmark.movable = False
-            # landmark.color = (255, 255, 255)
         # make initial conditions
         self.reset_world(world)
         return world
@@ -49,33 +41,23 @@ class Scenario(BaseScenario):
     def reset_world(self, world):
         # random properties for agents
         for i, agent in enumerate(world.agents):
-            # agent.color = np.array([0.35, 0.35, 0.85])
-            agent.color = np.array([np.random.uniform(0, 1), np.random.uniform(0, 1), np.random.uniform(0, 1)])
+            agent.color = np.array([0.35, 0.35, 0.85])
         # random properties for landmarks
         for i, landmark in enumerate(world.landmarks):
-            if 'obstacle' in landmark.name:
-                landmark.color = np.array([1, 0, 0])
-            else:
-                a = world.agents[np.random.randint(len(world.agents))]
-                landmark.color = a.color
+            landmark.color = np.array([0.25, 0.25, 0.25])
         # set random initial states
         for agent in world.agents:
             agent.state.p_pos = np.random.uniform(-world.range_p, +world.range_p, world.dim_p)
             agent.state.p_vel = np.zeros(world.dim_p)
             agent.state.c = np.zeros(world.dim_c)
         for i, landmark in enumerate(world.landmarks):
-            if 'obstacle' in landmark.name:
-                print("WORLD LANDMARKS:", world.landmarks[i-1].state.p_pos)
-                landmark.state.p_pos = np.array([world.landmarks[i-1].state.p_pos[0] - (0.05 * 5), world.landmarks[i-1].state.p_pos[1] - (0.15)])
-            else:
-                landmark.state.p_pos = np.random.uniform(-world.range_p, +world.range_p, world.dim_p)
+            landmark.state.p_pos = np.random.uniform(-world.range_p, +world.range_p, world.dim_p)
             if i != 0:
-                for j in range(i):
+                for j in range(i): 
                     while True:
                         if np.sqrt(np.sum(np.square(landmark.state.p_pos - world.landmarks[j].state.p_pos)))>0.22:
                             break
-                        else:
-                            landmark.state.p_pos = np.random.uniform(-world.range_p, +world.range_p, world.dim_p)
+                        else: landmark.state.p_pos = np.random.uniform(-world.range_p, +world.range_p, world.dim_p)
             landmark.state.p_vel = np.zeros(world.dim_p)
         
         # # set agent goals

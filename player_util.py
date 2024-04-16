@@ -91,7 +91,7 @@ class Agent(object):
         else:
             available_actions = None
             available_actions_data = 0
-        # print("available_actions:", available_actions)
+
         self.poses = self.get_other_poses()
         self.mask = self.get_mask()
         value_multi, actions, entropy, log_prob, hn_self, hn_ToM, ToM_goals, edge_logits, comm_edges, probs, real_cover, ToM_target_cover =\
@@ -133,7 +133,7 @@ class Agent(object):
             available_actions = self.get_available_actions()
         else:
             available_actions = None
-        # print("available_actions:", available_actions)
+        
         with torch.no_grad():
             self.poses = self.get_other_poses()
             self.mask = self.get_mask()

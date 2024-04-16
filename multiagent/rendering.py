@@ -83,9 +83,6 @@ class Viewer(object):
     def add_onetime(self, geom):
         self.onetime_geoms.append(geom)
 
-    def screenshot(self):
-        pyglet.image.get_buffer_manager().get_color_buffer().save('screenshot.png')
-
     def render(self, return_rgb_array=False):
         glClearColor(1,1,1,1)
         self.window.clear()
@@ -98,7 +95,6 @@ class Viewer(object):
             geom.render()
         self.transform.disable()
         arr = None
-        self.screenshot()
         if return_rgb_array:
             buffer = pyglet.image.get_buffer_manager().get_color_buffer()
             image_data = buffer.get_image_data()
@@ -253,11 +249,6 @@ def make_circle(radius=10, res=30, filled=True):
         return FilledPolygon(points)
     else:
         return PolyLine(points, True)
-
-def make_rectangle():
-    multiplier = 2
-    geom = make_polygon([(0, 0.05*multiplier), (0, 0), (0.1*5, 0), (0.1*5, 0.05*multiplier)])
-    return geom
 
 def make_polygon(v, filled=True):
     if filled: return FilledPolygon(v)
