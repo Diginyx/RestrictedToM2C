@@ -8,6 +8,7 @@ from torch.autograd import Variable
 import json
 from utils import ensure_shared_grads
 
+
 class Agent(object):
     def __init__(self, model, env, args, state, device):
         self.model = model
@@ -15,7 +16,7 @@ class Agent(object):
         self.num_agents = env.n
         self.num_targets = env.num_target
         self.state_dim = env.observation_space.shape[2]
-        self.model_name = args.model 
+        self.model_name = args.model
         self.prior = torch.FloatTensor(np.array([0.7, 0.3]))  # communication edge prior
 
         self.model_name = args.model
@@ -46,8 +47,8 @@ class Agent(object):
 
         self.hself = torch.zeros(self.num_agents, self.lstm_out).to(device)
         self.hToM = torch.zeros(self.num_agents, self.num_agents, self.lstm_out).to(device)
-        
-        self.poses = None # cam_dim=3 ndarray
+
+        self.poses = None  # cam_dim=3 ndarray
         self.ToM_history = []
         self.Policy_history = []
 
@@ -58,15 +59,18 @@ class Agent(object):
             cam_states = torch.from_numpy(np.array(cam_states)).float().to(self.device)
 
             # compute relative camera poses in self coordinate
-            cam_dim = cam_states.size()[-1] # cam_dim=3
+            cam_dim = cam_states.size()[-1]  # cam_dim=3
             cam_states_duplicate = cam_states.unsqueeze(0).expand(self.num_agents, self.num_agents, cam_dim)
-            cam_states_relative = cam_states_duplicate - cam_states.unsqueeze(1).expand(self.num_agents, self.num_agents, cam_dim)
-            cam_state_theta = ((cam_states_relative[:,:,-1]/180) * np.pi).reshape(self.num_agents, self.num_agents, 1)
-            poses = torch.cat((cam_states_relative[:,:,:2], torch.cos(cam_state_theta), torch.sin(cam_state_theta)),-1)
+            cam_states_relative = cam_states_duplicate - cam_states.unsqueeze(1).expand(self.num_agents,
+                                                                                        self.num_agents, cam_dim)
+            cam_state_theta = ((cam_states_relative[:, :, -1] / 180) * np.pi).reshape(self.num_agents, self.num_agents,
+                                                                                      1)
+            poses = torch.cat((cam_states_relative[:, :, :2], torch.cos(cam_state_theta), torch.sin(cam_state_theta)),
+                              -1)
             return poses
         elif "CN" in self.args.env:
             return torch.zeros(self.num_agents, self.num_agents, 1)
-    
+
     def get_mask(self):
         if not self.args.mask:
             return torch.ones(self.num_agents, self.num_agents, 1)
@@ -94,12 +98,12 @@ class Agent(object):
         # print("available_actions:", available_actions)
         self.poses = self.get_other_poses()
         self.mask = self.get_mask()
-        value_multi, actions, entropy, log_prob, hn_self, hn_ToM, ToM_goals, edge_logits, comm_edges, probs, real_cover, ToM_target_cover =\
-            self.model(self.state, self.hself, self.hToM, self.poses, self.mask, available_actions = available_actions)
+        value_multi, actions, entropy, log_prob, hn_self, hn_ToM, ToM_goals, edge_logits, comm_edges, probs, real_cover, ToM_target_cover = \
+            self.model(self.state, self.hself, self.hToM, self.poses, self.mask, available_actions=available_actions)
 
-        actions_env = actions.cpu().numpy() # only ndarrays can be processed by the environment
-        state_multi, reward, self.done, self.info = self.env.step(actions_env)#,obstacle=True)
-        reward_multi = reward.repeat(self.num_agents) # all agents share the same reward
+        actions_env = actions.cpu().numpy()  # only ndarrays can be processed by the environment
+        state_multi, reward, self.done, self.info = self.env.step(actions_env)  # ,obstacle=True)
+        reward_multi = reward.repeat(self.num_agents)  # all agents share the same reward
 
         self.reward_org = reward_multi.copy()
 
@@ -107,11 +111,13 @@ class Agent(object):
             reward_multi = self.reward_normalizer(reward_multi)
 
         # save state for training
-        Policy_data = {"state":self.state.detach().cpu().numpy(), "poses": self.poses.detach().cpu().numpy(),"actions": actions_env, "reward": reward_multi,\
-            "mask":self.mask.detach().cpu().numpy(),"available_actions": available_actions_data}
-        real_goals = torch.cat((1-actions,actions),-1)
-        ToM_data = {"state":self.state.detach().cpu().numpy(), "poses":self.poses.detach().cpu().numpy(), "mask":self.mask.detach().cpu().numpy(),\
-            "real":real_goals.detach().cpu().numpy(), "available_actions": available_actions_data}
+        Policy_data = {"state": self.state.detach().cpu().numpy(), "poses": self.poses.detach().cpu().numpy(),
+                       "actions": actions_env, "reward": reward_multi, \
+                       "mask": self.mask.detach().cpu().numpy(), "available_actions": available_actions_data}
+        real_goals = torch.cat((1 - actions, actions), -1)
+        ToM_data = {"state": self.state.detach().cpu().numpy(), "poses": self.poses.detach().cpu().numpy(),
+                    "mask": self.mask.detach().cpu().numpy(), \
+                    "real": real_goals.detach().cpu().numpy(), "available_actions": available_actions_data}
         self.Policy_history.append(Policy_data)
         self.ToM_history.append(ToM_data)
 
@@ -121,8 +127,8 @@ class Agent(object):
         self.reward = torch.tensor(reward_multi).float().to(self.device)
         self.eps_len += 1
 
-        self.hself=hn_self
-        self.hToM=hn_ToM
+        self.hself = hn_self
+        self.hToM = hn_ToM
 
         self.env_step += 1
         if self.env_step >= self.env.max_steps:
@@ -137,8 +143,9 @@ class Agent(object):
         with torch.no_grad():
             self.poses = self.get_other_poses()
             self.mask = self.get_mask()
-            value_multi, actions, entropy, log_prob, hn_self, hn_ToM, ToM_goals, edge_logits, comm_edges, probs, real_cover, ToM_target_cover=\
-                self.model(self.state, self.hself, self.hToM, self.poses, self.mask, True, available_actions = available_actions)
+            value_multi, actions, entropy, log_prob, hn_self, hn_ToM, ToM_goals, edge_logits, comm_edges, probs, real_cover, ToM_target_cover = \
+                self.model(self.state, self.hself, self.hToM, self.poses, self.mask, True,
+                           available_actions=available_actions)
 
             self.comm_cnt = torch.sum(comm_edges)
             self.comm_bit = self.comm_cnt * self.num_targets
@@ -179,22 +186,22 @@ class Agent(object):
             self.random_ToM_target_acc = torch.mean((real_cover == random_ToM_cover)[real_cover].float())
             # print(torch.mean(ToM_goal.float()))
 
-        state_multi, self.reward, self.done, self.info = self.env.step(actions)  # , obstacle=True
+        state_multi, self.reward, self.done, self.info = self.env.step(actions)  # , obstacle=True)
         if isinstance(self.done, list): self.done = np.sum(self.done)
         self.state = torch.from_numpy(np.array(state_multi)).float().to(self.device)
         self.eps_len += 1
 
-        self.hself=hn_self
-        self.hToM=hn_ToM
+        self.hself = hn_self
+        self.hToM = hn_ToM
 
         self.env_step += 1
         if self.env_step >= self.env.max_steps:
             self.done = True
 
-        return self.reward, self.ToM_acc
+        return self.reward, self.ToM_acc, self.ToM_target_acc
 
-    def reset(self):
-        obs = self.env.reset()
+    def reset(self, agents, landmarks):
+        obs = self.env.reset(agents, landmarks)
         self.state = torch.from_numpy(np.array(obs)).float().to(self.device)
 
         self.eps_len = 0
@@ -226,9 +233,9 @@ class Agent(object):
             self.reward_std = 1
         else:
             delt = reward - self.reward_mean
-            self.reward_mean = self.reward_mean + delt/self.num_steps
-            self.vk = self.vk + delt * (reward-self.reward_mean)
-            self.reward_std = np.sqrt(self.vk/(self.num_steps - 1))
+            self.reward_mean = self.reward_mean + delt / self.num_steps
+            self.vk = self.vk + delt * (reward - self.reward_mean)
+            self.reward_std = np.sqrt(self.vk / (self.num_steps - 1))
         reward = (reward - self.reward_mean) / (self.reward_std + 1e-8)
         return reward
 

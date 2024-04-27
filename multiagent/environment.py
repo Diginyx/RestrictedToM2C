@@ -4,11 +4,12 @@ from gym.envs.registration import EnvSpec
 import numpy as np
 from multiagent.multi_discrete import MultiDiscrete
 
+
 # environment for all agents in the multiagent world
 # currently code assumes that no agents will be created/destroyed at runtime!
 class MultiAgentEnv(gym.Env):
     metadata = {
-        'render.modes' : ['human', 'rgb_array']
+        'render.modes': ['human', 'rgb_array']
     }
 
     def __init__(self, world, reset_callback=None, reward_callback=None,
@@ -17,6 +18,7 @@ class MultiAgentEnv(gym.Env):
 
         self.world = world
         self.agents = self.world.policy_agents
+        self.landmarks = world.landmarks
         self.preys = self.world.policy_preys
         # set required vectorized gym env property
         self.n_agents = len(world.policy_agents)
@@ -51,7 +53,8 @@ class MultiAgentEnv(gym.Env):
             if self.discrete_action_space:
                 u_action_space = spaces.Discrete(world.dim_p * 2 + 1)
             else:
-                u_action_space = spaces.Box(low=-agent.u_range, high=+agent.u_range, shape=(world.dim_p,), dtype=np.float32)
+                u_action_space = spaces.Box(low=-agent.u_range, high=+agent.u_range, shape=(world.dim_p,),
+                                            dtype=np.float32)
             if agent.movable:
                 total_action_space.append(u_action_space)
             # communication action space
@@ -86,13 +89,13 @@ class MultiAgentEnv(gym.Env):
 
     def bound(self, x):
         d = np.zeros(2)
-        if abs(x[0])>abs(x[1]) and x[0]<0 and abs(x[0])>0.8*self.range_p:
+        if abs(x[0]) > abs(x[1]) and x[0] < 0 and abs(x[0]) > 0.8 * self.range_p:
             d[0] = 2
-        if abs(x[0])>abs(x[1]) and x[0]>0 and abs(x[0])>0.8*self.range_p:
+        if abs(x[0]) > abs(x[1]) and x[0] > 0 and abs(x[0]) > 0.8 * self.range_p:
             d[0] = -2
-        if abs(x[0])<abs(x[1]) and x[1]<0 and abs(x[1])>0.8*self.range_p:
+        if abs(x[0]) < abs(x[1]) and x[1] < 0 and abs(x[1]) > 0.8 * self.range_p:
             d[1] = 2
-        if abs(x[0])<abs(x[1]) and x[1]>0 and abs(x[1])>0.8*self.range_p:
+        if abs(x[0]) < abs(x[1]) and x[1] > 0 and abs(x[1]) > 0.8 * self.range_p:
             d[1] = -2
         return d
 
@@ -115,9 +118,9 @@ class MultiAgentEnv(gym.Env):
                 dist = np.sqrt(np.sum(np.square(prey.state.p_pos - agent.state.p_pos)))
                 if dist < min_dist:
                     min_dist = dist
-                    direction = (prey.state.p_pos - agent.state.p_pos)/dist
+                    direction = (prey.state.p_pos - agent.state.p_pos) / dist
                     direction_intensity = np.abs(direction)
-                    direction[np.argmax(direction_intensity)] = np.sign(direction[np.argmax(direction_intensity)])*1
+                    direction[np.argmax(direction_intensity)] = np.sign(direction[np.argmax(direction_intensity)]) * 1
                     direction[np.argmin(direction_intensity)] = 0
             # not allow to cross the boundary
             in_bound = self.bound(prey.state.p_pos)
@@ -146,9 +149,9 @@ class MultiAgentEnv(gym.Env):
             reward_n = [reward] * self.n
         return obs_n, reward_n, done_n, info_n
 
-    def reset(self):
+    def reset(self, agents, landmarks):
         # reset world
-        self.reset_callback(self.world)
+        self.reset_callback(self.world, agents, landmarks)
         # reset renderer
         self._reset_render()
         # record observations for each agent
@@ -193,7 +196,7 @@ class MultiAgentEnv(gym.Env):
             size = action_space.high - action_space.low + 1
             index = 0
             for s in size:
-                act.append(action[index:(index+s)])
+                act.append(action[index:(index + s)])
                 index += s
             action = act
         else:
@@ -253,33 +256,35 @@ class MultiAgentEnv(gym.Env):
                     else:
                         word = alphabet[np.argmax(other.state.c)]
                     message += (other.name + ' to ' + agent.name + ': ' + word + '   ')
-          
 
         for i in range(len(self.viewers)):
             # create viewers (if necessary)
             if self.viewers[i] is None:
                 # import rendering only if we need it (and don't import for headless machines)
-                #from gym.envs.classic_control import rendering
+                # from gym.envs.classic_control import rendering
                 from multiagent import rendering
-                self.viewers[i] = rendering.Viewer(700,700)
+                self.viewers[i] = rendering.Viewer(700, 700)
 
         # create rendering geometry
         if self.render_geoms is None:
             # import rendering only if we need it (and don't import for headless machines)
-            #from gym.envs.classic_control import rendering
+            # from gym.envs.classic_control import rendering
             from multiagent import rendering
             self.render_geoms = []
             self.render_geoms_xform = []
+            i = 0
             for entity in self.world.entities:
+                # DRAWING CIRCLE
                 geom = rendering.make_circle(entity.size)
                 xform = rendering.Transform()
                 if 'agent' in entity.name:
                     geom.set_color(*entity.color, alpha=0.5)
-                else:
+                elif 'landmark' or 'obstacle' in entity.name:
                     geom.set_color(*entity.color)
                 geom.add_attr(xform)
                 self.render_geoms.append(geom)
                 self.render_geoms_xform.append(xform)
+                i += 1
 
             # add geoms to viewer
             for viewer in self.viewers:
@@ -296,12 +301,12 @@ class MultiAgentEnv(gym.Env):
                 pos = np.zeros(self.world.dim_p)
             else:
                 pos = self.agents[i].state.p_pos
-            self.viewers[i].set_bounds(pos[0]-cam_range,pos[0]+cam_range,pos[1]-cam_range,pos[1]+cam_range)
+            self.viewers[i].set_bounds(pos[0] - cam_range, pos[0] + cam_range, pos[1] - cam_range, pos[1] + cam_range)
             # update geometry positions
             for e, entity in enumerate(self.world.entities):
                 self.render_geoms_xform[e].set_translation(*entity.state.p_pos)
             # render to display or array
-            results.append(self.viewers[i].render(return_rgb_array = mode=='rgb_array'))
+            results.append(self.viewers[i].render(return_rgb_array=mode == 'rgb_array'))
 
         return results
 
@@ -322,7 +327,7 @@ class MultiAgentEnv(gym.Env):
         if receptor_type == 'grid':
             for x in np.linspace(-range_max, +range_max, 5):
                 for y in np.linspace(-range_max, +range_max, 5):
-                    dx.append(np.array([x,y]))
+                    dx.append(np.array([x, y]))
         return dx
 
 
@@ -331,7 +336,7 @@ class MultiAgentEnv(gym.Env):
 class BatchMultiAgentEnv(gym.Env):
     metadata = {
         'runtime.vectorized': True,
-        'render.modes' : ['human', 'rgb_array']
+        'render.modes': ['human', 'rgb_array']
     }
 
     def __init__(self, env_batch):
@@ -356,7 +361,7 @@ class BatchMultiAgentEnv(gym.Env):
         info_n = {'n': []}
         i = 0
         for env in self.env_batch:
-            obs, reward, done, _ = env.step(action_n[i:(i+env.n)], time)
+            obs, reward, done, _ = env.step(action_n[i:(i + env.n)], time)
             i += env.n
             obs_n += obs
             # reward = [r / len(self.env_batch) for r in reward]
