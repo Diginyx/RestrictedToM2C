@@ -15,6 +15,9 @@ from player_util import Agent
 from environment import create_env
 from shared_optim import SharedRMSprop, SharedAdam
 
+
+VERBOSE = False
+
 class HLoss(nn.Module):
     def __init__(self):
         super(HLoss, self).__init__()
@@ -31,7 +34,8 @@ class HLoss(nn.Module):
             b = b.mean()
         return b
 
-def optimize_ToM(state, poses, masks, available_actions, args, params, optimizer_ToM, shared_model, device_share, env):
+def optimize_ToM(state, poses, masks, available_actions, args, params, optimizer_ToM, shared_model, device_share, env,
+                 two_way=True):
     num_agents = env.n
     num_targets = env.num_target
     max_steps = env.max_steps
@@ -75,10 +79,20 @@ def optimize_ToM(state, poses, masks, available_actions, args, params, optimizer
             for s_i in range(args.A2C_steps):
                 step = seg * args.A2C_steps + s_i
                 available_action = available_actions[:,step].to(device_share) if args.mask_actions else None
-                
-                value_multi, actions, entropy, log_prob, hn_self, hn_ToM, ToM_goal, edge_logits, comm_edges, probs, real_cover, ToM_target_cover =\
-                        shared_model(state[:,step].to(device_share), hself, h_ToM, poses[:,step].to(device_share), masks[:,step].to(device_share), available_actions = available_action)
+
+                if two_way:
+                    value_multi, actions, entropy, log_prob, hn_self, hn_ToM, ToM_goal, edge_logits, comm_edges, probs, real_cover, ToM_target_cover, replies =\
+                        shared_model(state[:,step].to(device_share), hself, h_ToM, poses[:,step].to(device_share), masks[:,step].to(device_share), available_actions = available_action, two_way=True)
+                else:
+                    value_multi, actions, entropy, log_prob, hn_self, hn_ToM, ToM_goal, edge_logits, comm_edges, probs, real_cover, ToM_target_cover =\
+                        shared_model(state[:,step].to(device_share), hself, h_ToM, poses[:,step].to(device_share), masks[:,step].to(device_share), available_actions = available_action, two_way=False)
+
+
+                if VERBOSE and two_way:
+                    print(replies)
                 ToM_target_loss += BCE_criterion(ToM_target_cover.float(), real_cover.float())
+                if two_way:
+                    reply_loss = torch.sum(replies)
                 ToM_target_cover_discrete = (ToM_target_cover > 0.6)
                 ToM_target_acc += torch.sum((ToM_target_cover_discrete == real_cover))
                 
@@ -109,7 +123,7 @@ def optimize_ToM(state, poses, masks, available_actions, args, params, optimizer
             ToM_prob = ToM_goals.float()
             ToM_loss += KL_criterion(ToM_prob.log(), real_prob)
             
-            loss = ToM_loss + 0.5 * ToM_target_loss
+            loss = ToM_loss + 0.5 * ToM_target_loss + (0.1*reply_loss if two_way else 0)
             loss = loss/(count)
             shared_model.zero_grad()
             loss.backward()
@@ -402,7 +416,7 @@ def train(args, shared_model, optimizer_Policy, optimizer_ToM, train_modes, n_it
     #device_share = torch.device('cuda:0')
     if env == None:
         env = create_env(env_name, args)
-
+    two_way = args.two_way
     params = []
     params_ToM = []
     params_comm = []
@@ -480,7 +494,7 @@ def train(args, shared_model, optimizer_Policy, optimizer_ToM, train_modes, n_it
                     print("ToM training started")
                     state, poses, masks, real_goals, available_actions = load_data(args, ToM_history)
                     print("ToM data loaded")
-                    ToM_loss_sum, ToM_loss_avg, ToM_target_loss, ToM_target_acc = optimize_ToM(state, poses, masks, available_actions, args, params_ToM, optimizer_ToM, shared_model, device_share, env)
+                    ToM_loss_sum, ToM_loss_avg, ToM_target_loss, ToM_target_acc = optimize_ToM(state, poses, masks, available_actions, args, params_ToM, optimizer_ToM, shared_model, device_share, env, two_way)
                     print("optimized based on ToM loss")
                     
                     writer.add_scalar('train/ToM_loss_sum', ToM_loss_sum.sum(), n_steps)

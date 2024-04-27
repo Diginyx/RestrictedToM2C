@@ -54,6 +54,7 @@ parser.add_argument('--lstm-out', type=int, default=32, metavar='LO', help='lstm
 parser.add_argument('--sleep-time', type=int, default=0, metavar='LO', help='seconds')
 parser.add_argument('--max-step', type=int, default=3000000, metavar='LO', help='max learning steps')
 parser.add_argument('--render_save', dest='render_save', action='store_true', help='render save')
+parser.add_argument('--two_way', dest='two_way', action='store_true', default=False, help='Enable 2 way comms')
 
 parser.add_argument('--num-agents', type=int, default=-1)   # if -1, then the env will load the default setting
 parser.add_argument('--num-targets', type=int, default=-1)  # else, you can assign the number of agents and targets yourself
