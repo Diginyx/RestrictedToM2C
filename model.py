@@ -5,9 +5,12 @@ import torch.nn as nn
 from gym import spaces
 import torch.nn.functional as F
 from torch.autograd import Variable
+import random
 
 from utils import norm_col_init, weights_init
 from perception import NoisyLinear, RNN, AttentionLayer
+
+VERBOSE = False
 
 def build_model(env, args, device):
     name = args.model
@@ -42,7 +45,12 @@ def sample_action(mu_multi, sigma_multi, device, test=False):
         action = prob.max(-1)[1].data
         action_env = action.cpu().numpy()  # np.squeeze(action.cpu().numpy(), axis=0)
     else:
-        action = prob.multinomial(1).data
+        # We had problems here with negative or nan probabilites sometime after the softmax so this was needed. Still blew up after this fix, but this stabilised it
+        try:
+            action = prob.multinomial(1).data
+        except:
+            num_actions = prob.size(-1)
+            action = torch.tensor([[np.random.choice(num_actions)]], device=device)
         log_prob = log_prob.gather(-1, Variable(action))  # [num_agent, 1] # comment for sl slave
         action_env = action.squeeze(0)
     
@@ -157,7 +165,11 @@ class PolicyNet_Single(nn.Module):
         else:
             prob = prob.squeeze(-1)
             log_prob = log_prob.squeeze(-1)
-            action = prob.multinomial(1).data
+            try:
+                action = prob.multinomial(1).data
+            except:
+                num_actions = prob.size(-1)
+                action = torch.tensor([[np.random.choice(num_actions)]], device=device)
             log_prob = log_prob.gather(-1, Variable(action))  # [num_agent, 1] # comment for sl slave
 
         return action, entropy, log_prob, prob
@@ -749,7 +761,8 @@ class ToM2C_single(torch.nn.Module):
         self.train()
         self.device = device
 
-    def forward(self, multi_obs, self_hiddens, ToM_hiddens, poses, masks, test=False, available_actions = None, train_comm=False):
+    def forward(self, multi_obs, self_hiddens, ToM_hiddens, poses, masks, test=False, available_actions=None,
+                train_comm=False, two_way=False):
         num_agents = self.num_agents
         num_targets = self.num_targets
 
@@ -1053,7 +1066,22 @@ class ToM2C_single(torch.nn.Module):
             ToM_target_cover = ToM_target_cover.squeeze(0)
             available_actions = available_actions.reshape(num_agents, num_targets, 1)
 
-        return values, actions, entropies, log_probs, hn_self, hn_ToM, other_goals, edge_logits, comm_edges, probs, real_cover, ToM_target_cover
+        replies = torch.zeros(10)
+        if two_way:
+            # Checks if the action it takes is the same as the message it was sent for each message. Replies is binary
+            max_reshaped = max_prob.view(probs.shape)
+            max_msg, _ = torch.max(max_reshaped, dim=1)
+            max_prob, _ = torch.max(probs, dim=1)
+
+            same_max = max_msg == max_prob
+
+            replies = same_max
+            if VERBOSE:
+                print(f'This is the message: {max_reshaped.shape, probs.shape, same_max.shape}')
+
+            return values, actions, entropies, log_probs, hn_self, hn_ToM, other_goals, edge_logits, comm_edges, probs, real_cover, ToM_target_cover, replies
+        else:
+            return values, actions, entropies, log_probs, hn_self, hn_ToM, other_goals, edge_logits, comm_edges, probs, real_cover, ToM_target_cover
 
     def sample_noise(self):
         self.actor.sample_noise()
