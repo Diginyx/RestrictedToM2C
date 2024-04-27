@@ -6,6 +6,8 @@ import random
 
 class Scenario(BaseScenario):
     def make_world(self, num_agents, num_targets):
+        agents = []
+        landmarks = []
         world = World()
         # set any world properties first
         world.dim_c = 0
@@ -43,10 +45,10 @@ class Scenario(BaseScenario):
             landmark.movable = False
             # landmark.color = (255, 255, 255)
         # make initial conditions
-        self.reset_world(world)
+        self.reset_world(world, agents, landmarks)
         return world
 
-    def reset_world(self, world):
+    def reset_world(self, world, agents, landmarks):
         # random properties for agents
         for i, agent in enumerate(world.agents):
             # agent.color = np.array([0.35, 0.35, 0.85])
@@ -59,24 +61,40 @@ class Scenario(BaseScenario):
                 a = world.agents[np.random.randint(len(world.agents))]
                 landmark.color = a.color
         # set random initial states
+        idx = 0
         for agent in world.agents:
-            agent.state.p_pos = np.random.uniform(-world.range_p, +world.range_p, world.dim_p)
+            if len(agents) != 0:
+                agent.state.p_pos = np.array(agents[idx])
+                idx += 1
+                print("YUUUUUUUUUUUUUUUUUUUUUUUUUUUUP")
+            else:
+                agent.state.p_pos = np.random.uniform(-world.range_p, +world.range_p, world.dim_p)
             agent.state.p_vel = np.zeros(world.dim_p)
             agent.state.c = np.zeros(world.dim_c)
+            # with open("positions.txt", "a+")as file:
+            #     file.write("agent: " + str(repr(list(agent.state.p_pos))) + "\n")
+        idx = 0
         for i, landmark in enumerate(world.landmarks):
-            if 'obstacle' in landmark.name:
-                print("WORLD LANDMARKS:", world.landmarks[i-1].state.p_pos)
-                landmark.state.p_pos = np.array([world.landmarks[i-1].state.p_pos[0] - (0.05 * 5), world.landmarks[i-1].state.p_pos[1] - (0.15)])
+            if len(landmarks) != 0:
+                landmark.state.p_pos = np.array(landmarks[idx])
+                idx += 1
+                print("YEEEEEEEEEEEEEEEEEEEEEEEEET")
             else:
-                landmark.state.p_pos = np.random.uniform(-world.range_p, +world.range_p, world.dim_p)
-            if i != 0:
-                for j in range(i):
-                    while True:
-                        if np.sqrt(np.sum(np.square(landmark.state.p_pos - world.landmarks[j].state.p_pos)))>0.22:
-                            break
-                        else:
-                            landmark.state.p_pos = np.random.uniform(-world.range_p, +world.range_p, world.dim_p)
-            landmark.state.p_vel = np.zeros(world.dim_p)
+                if 'obstacle' in landmark.name:
+                    print("WORLD LANDMARKS:", world.landmarks[i-1].state.p_pos)
+                    landmark.state.p_pos = np.array([world.landmarks[i-1].state.p_pos[0] - (0.05 * 5), world.landmarks[i-1].state.p_pos[1] - (0.15)])
+                else:
+                    landmark.state.p_pos = np.random.uniform(-world.range_p, +world.range_p, world.dim_p)
+                if i != 0:
+                    for j in range(i):
+                        while True:
+                            if np.sqrt(np.sum(np.square(landmark.state.p_pos - world.landmarks[j].state.p_pos)))>0.22:
+                                break
+                            else:
+                                landmark.state.p_pos = np.random.uniform(-world.range_p, +world.range_p, world.dim_p)
+                landmark.state.p_vel = np.zeros(world.dim_p)
+            # with open("positions.txt", "a+") as file:
+            #     file.write("landmark: " + str(repr(list(landmark.state.p_pos))) + "\n")
         
         # # set agent goals
         # if goals is None:

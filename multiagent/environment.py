@@ -147,9 +147,9 @@ class MultiAgentEnv(gym.Env):
             reward_n = [reward] * self.n
         return obs_n, reward_n, done_n, info_n
 
-    def reset(self):
+    def reset(self, agents, landmarks):
         # reset world
-        self.reset_callback(self.world)
+        self.reset_callback(self.world, agents, landmarks)
         # reset renderer
         self._reset_render()
         # record observations for each agent
@@ -274,7 +274,7 @@ class MultiAgentEnv(gym.Env):
             i = 0
             for entity in self.world.entities:
                 #DRAWING CIRCLE
-                if "obstacle" in entity.name:
+                if "landmark" in entity.name:
                     geom = rendering.make_rectangle()
                 else:
                     geom = rendering.make_circle(entity.size)

@@ -180,8 +180,6 @@ class Agent(object):
             # print(torch.mean(ToM_goal.float()))
 
         state_multi, self.reward, self.done, self.info = self.env.step(actions)  # , obstacle=True)
-        print("Reward:", self.reward)
-        print("ToM_acc:", self.ToM_acc)
         if isinstance(self.done, list): self.done = np.sum(self.done)
         self.state = torch.from_numpy(np.array(state_multi)).float().to(self.device)
         self.eps_len += 1
@@ -193,8 +191,10 @@ class Agent(object):
         if self.env_step >= self.env.max_steps:
             self.done = True
 
-    def reset(self):
-        obs = self.env.reset()
+        return self.reward, self.ToM_acc, self.ToM_target_acc
+
+    def reset(self, agents, landmarks):
+        obs = self.env.reset(agents, landmarks)
         self.state = torch.from_numpy(np.array(obs)).float().to(self.device)
 
         self.eps_len = 0

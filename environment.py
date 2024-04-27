@@ -80,8 +80,8 @@ class env_wrapper:
         rew_all = np.array([rew_ave/keep])
         return obs_n, rew_all, done_n, info_n
     
-    def reset(self):
-        obs_n = self.env.reset()
+    def reset(self, agents, landmarks):
+        obs_n = self.env.reset(agents, landmarks)
         return obs_n
 
     def seed(self, s):

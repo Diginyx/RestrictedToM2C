@@ -1,4 +1,6 @@
 from __future__ import division
+
+import matplotlib
 from setproctitle import setproctitle as ptitle
 
 import os
@@ -13,6 +15,9 @@ from model import build_model
 from utils import setup_logger
 from player_util import Agent
 from environment import create_env
+import ast
+import matplotlib.pyplot as plt
+import matplotlib
 
 
 parser = argparse.ArgumentParser(description='render')
@@ -46,6 +51,16 @@ def render_test(args):
 
     env = create_env(args.env, args)
 
+    agents = []
+    landmarks = []
+    file = open("positions.txt", "r")
+    positions = file.readlines()
+    for position in positions:
+        if "agent" in position:
+            agents.append(ast.literal_eval(position[len("agent: "):].strip()))
+        if "landmark" in position:
+            landmarks.append(ast.literal_eval(position[len("landmark: "):].strip()))
+
     env.seed(args.seed)
 
     player = Agent(None, env, args, None, device)
@@ -57,11 +72,22 @@ def render_test(args):
     saved_state = torch.load(args.load_model_dir)
     player.model.load_state_dict(saved_state['model'],strict=False)
 
+    rewards = []
+    accuracies = []
+    idx = 0
     for i_episode in range(args.test_eps):
-        player.reset()
+        print("agents:", agents[idx:idx+7])
+        print("landmarks:", landmarks[idx:idx+7])
+        player.reset(agents[idx:idx+7], landmarks[idx:idx+7])
+        idx += 7
         print(f"Episode:{i_episode}")
         for i_step in range(args.env_steps):
-            player.action_test()
+            reward, ToM_acc, _ = player.action_test()
+            rewards.append(reward)
+            accuracies.append(ToM_acc)
+
+    print(f"Average reward: {np.mean(np.array(rewards))}")
+    print(f"Average Accuracy: {np.mean(np.array(accuracies))}")
 
 if __name__ == '__main__':
     args = parser.parse_args()
