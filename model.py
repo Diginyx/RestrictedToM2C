@@ -1066,7 +1066,6 @@ class ToM2C_single(torch.nn.Module):
             ToM_target_cover = ToM_target_cover.squeeze(0)
             available_actions = available_actions.reshape(num_agents, num_targets, 1)
 
-        replies = torch.zeros(10)
         if two_way:
             # Checks if the action it takes is the same as the message it was sent for each message. Replies is binary
             max_reshaped = max_prob.view(probs.shape)
